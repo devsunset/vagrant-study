@@ -11,8 +11,8 @@
 https://www.vagrantup.com/
 
 https://developer.hashicorp.com/vagrant/intro
-https://developer.hashicorp.com/vagrant/tutorials/getting-started
 https://developer.hashicorp.com/vagrant/docs
+https://developer.hashicorp.com/vagrant/tutorials/getting-started
 
     공식 box 사이트: https://app.vagrantup.com/boxes/search
     유저 box 사이트: http://www.vagrantbox.es/
@@ -22,7 +22,10 @@ https://www.virtualbox.org/
 ########################################################
 ### Reference
 
+https://developer.hashicorp.com/vagrant/intro
+https://developer.hashicorp.com/vagrant/docs
 https://developer.hashicorp.com/vagrant/tutorials/getting-started
+
 https://www.44bits.io/ko/post/vagrant-tutorial
 https://judo0179.tistory.com/120
 https://nearhome.tistory.com/92
@@ -142,6 +145,11 @@ vagrant reload : vagrant destory + vagrant up 같이 동작
 vagrant ssh : 가상머신에 ssh로 접속
 vagrant status : 가상머신 동작상태를 확인
 vagrant provision : 가상머신의 설정을 변경하고 적용
+vagrant package :가상 머신을 박스 파일로 내보내기
+vagrant suspend: 현재 프로젝트의 가상 머신을 중지
+vagrant resume: 현재 프로젝트의 중지된 가상 머신을 재개
+vagrant global-status: 베이그런트에서 실행된 모든 가상 머신들의 상태
+
 
 ########################################################
 ### Vagrantfile
@@ -400,10 +408,23 @@ end
 --------------------------------------------------------
 
 # https://developer.hashicorp.com/vagrant/docs/vagrantfile/machine_settings
-config.vm.box(문자열) - 가상머신에 가져올 상자를구성.여기의 값은 설치된 상자의 이름이거나H ashiCorp의 Vagrant Cloud에있는 상자의 축약형 이름
+config.vm.box(문자열) - 가상머신에 가져올 상자를구성.여기의 값은 설치된 상자의 이름이거나 
+						HashiCorp의 Vagrant Cloud에있는 상자의 축약형 이름
 config.vm.provider - 프로비저닝에 사용할 하이퍼바이저 제공자를 선택
 config.vm.network -기기에 네트워크를 구성
 
+# 네트워크 관련된 설정으로 호스트와 가상 머신 사이에 포트 포워딩을 할 수 있습니다.
+  가상 머신의 80 포트를 호스트의 8080 포트에 연결하려면 다음 설정을 추가
+  config.vm.network "forwarded_port", guest: 80, host: 8080
+
+# 127.0.0.1로 IP를 강제하면, 호스트에 포트 포워딩이 되더라도 호스트 머신 밖에서는 가상 머신에 접근하는 것이 불가능
+  config.vm.network "forwarded_port", guest: 80, host: 8080, host_ip: "127.0.0.1"
+
+# private_network를 사용해 호스트에서만 접근 가능한 아이피 값을 추가적으로 지정하는 것도 가능
+config.vm.network "private_network", ip: "192.168.33.10"
+
+# public_network를 지정하면 브릿지를 통해 마치 내부 망의 물리머신에 있는 머신처럼 사용
+config.vm.network "public_network", :bridge => 'en0'
 
 # vagrant-hostmanager 는 게스트머신에서 호스트파일을 관리하는 플러그인
 1.5.0 버전부터 vagrant up 으로 프로비저닝이 발생하기 전에 hostmanager를 실행하기 때문에 사전에 설치
@@ -412,6 +433,9 @@ up 명령으로 작성한 Vagrantfile 을 바탕으로 프로비저닝을 진행
 $ vagrant plugin install vagrant-hostmanager
 $ vagrant up
 
+
+########################################################
+### Etc
 
 # Minimum Vagrant Version
 버전 호환성 이슈를 최소화 하기 위해서 vagrant 최소 요구 버전을 맨 위에 명시
@@ -435,3 +459,42 @@ Vagrant.require_version ">= 1.3.5", "< 1.4.0"
 	      inline: "echo hello from node #{i}"
 	  end
 	end
+
+# Vagrant는  기본적으로 프로젝트 디렉터리를 가상 머신의 /vagrant에 마운트시켜줍니다
+이를 기반으로 게스트에서 개발 서버를 실행하고, 호스트 상에서 IDE나 텍스트 에디터로 
+코드를 편집하면서 개발을 하는 것이 가능
+
+synced_folder 옵션을 통해서 추가적인 디렉터리를 마운트
+첫 번째 인자는 호스트의 디렉터리를 의미하고, 두 번째 인자는 가상 머신 상의 디렉터리를 의미
+config.vm.synced_folder "../data", "/vagrant_data"
+
+
+# 개발 환경 구축을 위한 프로비저너
+프로바이더Provider와 프로비저너Provisioner
+- 프로바이더는 가상 머신 기능을 제공하는 소프트웨어를 의미 (virtualbox)
+- 프로비저너는 가상 머신의 개발 환경을 셋업해주는 역할 (vagrant  다양한 프로비저닝 툴을 지원)
+
+우분투에 도커 설치 
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/bionic64"
+  config.vm.provision "shell", inline: "wget -qO- https://get.docker.com/ | sh"
+  config.vm.provision "shell", inline: "usermod -aG docker vagrant"
+end
+
+shell 프로비저너를 사용해서 inline으로 명령어 지정 (셸 스크립트는 멱등성을 보장해주지 않음)
+이 프로비저닝 내용은 맨 처음 vagrant up을 실행할 때만 동작
+따라서 이미 베이그런트로 가상 머신이 실행되어있는 경우 vagrant provision 명령어를 명시적으로 실행하거나,
+vagarnt reload --provision과 같이 reload에 --provision 옵션을 명시적으로 붙여주어야 함 
+
+
+# 가상 머신을 다시 박스로 만들어주는 package
+가상 머신을 박스 파일로 내보내기하려면 package 서브 커맨드를 사용
+vagrant package
+
+package.box라는 이름으로 새로운 베이그런트 박스 파일이 생성
+* 이 박스가 자동으로 로컬 환경에 설치되지는 않습니다. 
+이 박스를 사용하려면 vagrant add 명령어로 박스를 등록해주어야합니다.
+
+vagrant box add ubuntu/bionic64/docker ./package.box
+
+* --output 옵션을 사용해 내보내는 파일의 이름을 지정 가능 

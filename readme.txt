@@ -355,16 +355,18 @@ end
 # vi: set ft=ruby :
 
 Vagrant.configure("2") do |config|
- # kube-master VM
- config.vm.define "kube-master" do |config|
+  # kube-master1  VM
+ config.vm.define "kube-master1" do |config|
   config.vm.box = "ubuntu/focal64"
   config.vm.provider "virtualbox" do |vb|
-    vb.name = "kube-master"
+    vb.name = "kube-master1"
     vb.cpus = 1
-    vb.memory = 1000
+    vb.memory =1024
   end
-  config.vm.hostname = "kube-master"
-  config.vm.network "private_network", ip: "192.168.0.100"
+  config.vm.hostname = "kube-master1"
+  config.vm.network "private_network", ip: "172.31.0.100"
+  config.vm.provision "shell", inline: "wget -qO- https://get.docker.com/ | sh"
+  config.vm.provision "shell", inline: "usermod -aG docker vagrant"
  end
 
 # kube-worker1 VM
@@ -373,10 +375,12 @@ Vagrant.configure("2") do |config|
   config.vm.provider "virtualbox" do |vb|
     vb.name = "kube-worker1"
     vb.cpus = 1
-    vb.memory = 1000
+    vb.memory =1024
   end
   config.vm.hostname = "kube-worker1"
-  config.vm.network "private_network", ip: "192.168.0.101"
+  config.vm.network "private_network", ip: "172.31.0.101"
+  config.vm.provision "shell", inline: "wget -qO- https://get.docker.com/ | sh"
+  config.vm.provision "shell", inline: "usermod -aG docker vagrant"
  end
 
 # kube-worker2 VM
@@ -385,10 +389,27 @@ Vagrant.configure("2") do |config|
   config.vm.provider "virtualbox" do |vb|
     vb.name = "kube-worker2"
     vb.cpus = 1
-    vb.memory =1000
+    vb.memory =1024
   end
   config.vm.hostname = "kube-worker2"
-  config.vm.network "private_network", ip: "192.168.0.102"
+  config.vm.network "private_network", ip: "172.31.0.102"
+  config.vm.provision "shell", inline: "wget -qO- https://get.docker.com/ | sh"
+  config.vm.provision "shell", inline: "usermod -aG docker vagrant"
+ end
+
+
+# kube-worker3 VM
+ config.vm.define "kube-worker3" do |config|
+  config.vm.box = "ubuntu/focal64"
+  config.vm.provider "virtualbox" do |vb|
+    vb.name = "kube-worker3"
+    vb.cpus = 1
+    vb.memory =1024
+  end
+  config.vm.hostname = "kube-worker3"
+  config.vm.network "private_network", ip: "172.31.0.103"
+  config.vm.provision "shell", inline: "wget -qO- https://get.docker.com/ | sh"
+  config.vm.provision "shell", inline: "usermod -aG docker vagrant"
  end
 
 # Hostmanager Plugin
@@ -396,14 +417,14 @@ config.hostmanager.enabled = true
 config.hostmanager.manage_guest = true
 
 # Provision
- config.vm.provision "shell", inline: <<-SHELL
-  sed -i 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/g' /etc/ssh/sshd_config
-  sed -i 's/archive.ubuntu.com/ftp.daum.net/g' /etc/apt/sources.list
-  sed -i 's/security.ubuntu.com/ftp.daum.net/g' /etc/apt/sources.list
-  systemctl restart ssh
-  apt update
-  apt install -y chrony
- SHELL
+# config.vm.provision "shell", inline: <<-SHELL
+#  sed -i 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/g' /etc/ssh/sshd_config
+#  sed -i 's/archive.ubuntu.com/ftp.daum.net/g' /etc/apt/sources.list
+#  sed -i 's/security.ubuntu.com/ftp.daum.net/g' /etc/apt/sources.list
+#  systemctl restart ssh
+#  apt update
+#  apt install -y chrony
+# SHELL
 end
 --------------------------------------------------------
 
